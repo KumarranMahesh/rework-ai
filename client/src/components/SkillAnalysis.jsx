@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, ChevronRight, BarChart2, Loader2, ArrowRight } from 'lucide-react';
+import config from '../config';
 
 const SkillAnalysis = () => {
     const [formData, setFormData] = useState({ role: '', skills: '' });
@@ -17,7 +18,7 @@ const SkillAnalysis = () => {
         setTimeout(async () => {
         try {
             const skillsArray = formData.skills.split(',').map(s => s.trim());
-            const response = await axios.post('http://localhost:5000/api/analyze-skills', {
+            const response = await axios.post(`${config.API_URL}/api/analyze-skills`, {
             role: formData.role,
             currentSkills: skillsArray
             });

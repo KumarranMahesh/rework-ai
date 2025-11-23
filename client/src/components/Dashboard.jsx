@@ -3,13 +3,14 @@ import axios from 'axios';
 import DashboardLayout from './DashboardLayout';
 import ModuleCard from './LearningPath';
 import { TrendingUp, Briefcase, Bell } from 'lucide-react';
+import config from '../config';
 
 const Dashboard = () => {
     const [data, setData] = useState(null);
 
     useEffect(() => {
         // Fetch mock data
-        axios.get('http://localhost:5000/api/dashboard/1')
+        axios.get(`${config.API_URL}/api/dashboard/1`)
         .then(res => setData(res.data));
     }, []);
 
