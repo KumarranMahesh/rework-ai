@@ -5,7 +5,7 @@ import { Flower2 } from 'lucide-react';
 const Navbar = () => {
     return (
         <nav className="fixed top-6 left-1/2 -translate-x-1/2 w-[90%] max-w-6xl z-50">
-        <div className="glass rounded-full px-6 py-4 flex items-center justify-between shadow-sm">
+        <div className="bg-white/70 backdrop-blur-md border border-white/50 rounded-full px-6 py-4 flex items-center justify-between shadow-sm">
             <Link to="/" className="flex items-center gap-2 group">
             <div className="bg-indigo-600 p-2 rounded-lg ...">
                 <Flower2 className="w-5 h-5 text-white" />

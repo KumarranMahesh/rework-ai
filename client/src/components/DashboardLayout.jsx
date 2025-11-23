@@ -16,7 +16,7 @@ const DashboardLayout = ({ children }) => {
         <div className="min-h-screen bg-slate-50 flex">
         {/* Glass Sidebar */}
         <aside className="w-64 fixed h-screen p-6 hidden lg:block">
-            <div className="h-full glass rounded-3xl p-6 flex flex-col">
+            <div className="h-full bg-white/70 backdrop-blur-md border border-white/50 rounded-3xl p-6 flex flex-col">
             
             {/* Logo */}
             <div className="flex items-center gap-2 mb-10 px-2">
