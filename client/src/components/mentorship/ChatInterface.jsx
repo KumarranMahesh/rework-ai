@@ -1,53 +1,95 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // To support "Log Out" or navigation
 import DashboardLayout from '../DashboardLayout';
-import { Send, Smile, User, Bot, BarChart2 } from 'lucide-react';
+import config from '../../config'; // Import your API config
+import { Send, Smile, User, Bot, BarChart2, Activity, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
+import axios from 'axios';
 
 const ChatInterface = () => {
     const [messages, setMessages] = useState([
-        { id: 1, text: "Hi Priya! I noticed you completed the Excel module. How are you feeling about starting SQL today?", sender: "bot", sentiment: "neutral" }
+        { id: 1, text: "Hi Priya! I'm Kai. I'm analyzing your responses in real-time to help you stay confident. How are you feeling about your progress today?", sender: "bot", sentiment: "neutral" }
     ]);
     const [input, setInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
+    
+    // Real-time Sentiment State
+    const [sentimentData, setSentimentData] = useState({
+        score: 0,
+        mood: 'Neutral',
+        confidence: 72, // baseline
+        stress: 12      // baseline
+    });
+
     const scrollRef = useRef(null);
 
-    // Auto-scroll to bottom
+    // Auto-scroll
     useEffect(() => {
         if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }, [messages]);
 
-    const handleSend = () => {
+    const handleSend = async () => {
         if (!input.trim()) return;
 
-        // Add User Message
+        // 1. Add User Message immediately
         const userMsg = { id: Date.now(), text: input, sender: "user" };
         setMessages(prev => [...prev, userMsg]);
         setInput("");
         setIsTyping(true);
 
-        // Simulate AI Response & Sentiment Analysis
+        try {
+        // 2. Call the REAL Backend API
+        const response = await axios.post(`${config.API_URL}/api/analyze-sentiment`, {
+            text: userMsg.text
+        });
+
+        const { mood, score, advice } = response.data;
+
+        // 3. Update the Dashboard Visuals based on real data
+        // We simulate "Confidence" moving based on the sentiment score
+        setSentimentData(prev => ({
+            score: score,
+            mood: mood,
+            confidence: Math.min(100, Math.max(0, prev.confidence + (score * 5))), // Dynamic adjustment
+            stress: Math.min(100, Math.max(0, prev.stress - (score * 5)))
+        }));
+
+        // 4. Generate AI Response
         setTimeout(() => {
-        const isNegative = userMsg.text.toLowerCase().match(/(hard|scared|can't|tough|fail)/);
-        
-        let botResponse = {
+            const botResponse = {
             id: Date.now() + 1,
             sender: "bot",
-            sentiment: isNegative ? "empathetic" : "positive",
-            text: isNegative 
-            ? "I hear you. It's completely normal to feel that way when learning syntax. Remember, 89% of our returners felt the same way at this stage. Let's break it down into small steps." 
-            : "That's the spirit! Your confidence is tracking 20% higher than last week. Let's keep this momentum going!"
-        };
+            sentiment: mood.toLowerCase(), // 'positive', 'negative', 'neutral'
+            text: advice // The backend tells us what to say!
+            };
+            setMessages(prev => [...prev, botResponse]);
+            setIsTyping(false);
+        }, 1000); // Slight delay for realism
 
-        setMessages(prev => [...prev, botResponse]);
+        } catch (error) {
+        console.error("Sentiment Analysis Failed", error);
         setIsTyping(false);
-        }, 1500);
+        }
+    };
+
+    // Helper to pick color based on current mood
+    const getMoodColor = () => {
+        if (sentimentData.mood === 'Positive') return 'text-green-500';
+        if (sentimentData.mood === 'Negative') return 'text-pink-500';
+        return 'text-indigo-500'; // Neutral
+    };
+
+    const getMoodGradient = () => {
+        if (sentimentData.mood === 'Positive') return 'from-green-400 to-emerald-600';
+        if (sentimentData.mood === 'Negative') return 'from-pink-500 to-rose-600';
+        return 'from-indigo-400 to-purple-600';
     };
 
     return (
         <DashboardLayout>
         <div className="h-[calc(100vh-140px)] flex gap-6">
             
-            {/* Main Chat Area */}
+            {/* LEFT: Chat Area */}
             <div className="flex-1 flex flex-col bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden relative">
             
             {/* Header */}
@@ -62,7 +104,8 @@ const ChatInterface = () => {
                 <div>
                     <h3 className="font-display font-bold text-slate-900">Kai (AI Mentor)</h3>
                     <p className="text-xs text-slate-500 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Online
+                    <Activity size={12} className="text-indigo-500" /> 
+                    Analyzing Tone...
                     </p>
                 </div>
                 </div>
@@ -83,7 +126,7 @@ const ChatInterface = () => {
                     
                     <div className={`max-w-[70%] p-4 rounded-2xl text-sm leading-relaxed
                     ${msg.sender === 'user' ? 'bg-slate-900 text-white rounded-tr-none' : 'bg-white border border-slate-100 text-slate-600 rounded-tl-none shadow-sm'}
-                    ${msg.sentiment === 'empathetic' ? 'border-l-4 border-l-pink-400' : ''}
+                    ${msg.sentiment === 'negative' ? 'border-l-4 border-l-pink-400' : ''}
                     `}>
                     {msg.text}
                     </div>
@@ -122,44 +165,79 @@ const ChatInterface = () => {
             </div>
             </div>
 
-            {/* Right Panel: Sentiment Analysis Viz */}
+            {/* RIGHT: Live Sentiment Viz */}
             <div className="w-80 hidden xl:flex flex-col gap-6">
-            {/* Emotion Detection Card */}
-            <div className="glass-card p-6 rounded-3xl flex-1 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-500 via-indigo-500 to-green-500"></div>
-                <h3 className="font-display font-bold text-slate-800 mb-6 flex items-center gap-2">
-                <BarChart2 size={18} className="text-indigo-500" /> Live Sentiment
+            {/* The Neo-Gauge Card */}
+            <div className="glass-card p-6 rounded-3xl flex-1 relative overflow-hidden flex flex-col justify-center">
+                
+                {/* Dynamic Background Mesh */}
+                <div className={`absolute top-0 left-0 w-full h-2 bg-gradient-to-r ${getMoodGradient()} transition-all duration-1000`}></div>
+                
+                <h3 className="font-display font-bold text-slate-800 mb-8 flex items-center gap-2">
+                <Zap size={18} className={getMoodColor()} /> Real-Time Analysis
                 </h3>
                 
-                <div className="space-y-6 text-center">
-                <div className="relative w-40 h-40 mx-auto flex items-center justify-center">
-                    {/* Decorative Circles */}
-                    <div className="absolute inset-0 border-4 border-slate-100 rounded-full"></div>
-                    <div className="absolute inset-0 border-4 border-indigo-500 rounded-full border-t-transparent animate-spin duration-[3s]"></div>
-                    <div className="text-3xl font-bold text-slate-800">Neutral</div>
+                {/* The Animated Gauge */}
+                <div className="relative w-48 h-48 mx-auto mb-8">
+                {/* Outer Ring */}
+                <div className="absolute inset-0 border-8 border-slate-100 rounded-full"></div>
+                
+                {/* Inner Spinner (Visualizing Processing) */}
+                <motion.div 
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-2 border-2 border-dashed border-slate-200 rounded-full"
+                />
+
+                {/* Mood Text */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <motion.div 
+                    key={sentimentData.mood} // Triggers animation on change
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className={`text-4xl font-display font-bold ${getMoodColor()}`}
+                    >
+                    {sentimentData.mood}
+                    </motion.div>
+                    <p className="text-xs text-slate-400 mt-1 font-medium uppercase tracking-wider">Current Tone</p>
                 </div>
-                <p className="text-sm text-slate-500">
-                    Kai is analyzing your tone to adjust the mentorship style in real-time.
-                </p>
                 </div>
 
-                <div className="mt-8 space-y-3">
-                <div className="flex justify-between text-xs font-bold text-slate-500">
-                    <span>Confidence</span>
-                    <span>72%</span>
-                </div>
-                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full w-[72%] bg-green-400 rounded-full"></div>
+                {/* Data Bars */}
+                <div className="space-y-5">
+                <div>
+                    <div className="flex justify-between text-xs font-bold text-slate-500 mb-2">
+                    <span>Confidence Index</span>
+                    <span>{Math.round(sentimentData.confidence)}%</span>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${sentimentData.confidence}%` }}
+                        className="h-full bg-green-400 rounded-full shadow-[0_0_10px_rgba(74,222,128,0.5)]"
+                    />
+                    </div>
                 </div>
                 
-                <div className="flex justify-between text-xs font-bold text-slate-500 mt-4">
-                    <span>Stress Level</span>
-                    <span>12%</span>
+                <div>
+                    <div className="flex justify-between text-xs font-bold text-slate-500 mb-2">
+                    <span>Detected Stress</span>
+                    <span>{Math.round(sentimentData.stress)}%</span>
+                    </div>
+                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${sentimentData.stress}%` }}
+                        className="h-full bg-pink-400 rounded-full shadow-[0_0_10px_rgba(244,114,182,0.5)]"
+                    />
+                    </div>
                 </div>
-                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full w-[12%] bg-blue-400 rounded-full"></div>
                 </div>
+
+                <div className="mt-8 p-4 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-500 leading-relaxed">
+                <span className="font-bold text-slate-700">AI Note:</span> Changes in syntax and word choice are analyzed to predict your interview readiness.
                 </div>
+
             </div>
             </div>
 

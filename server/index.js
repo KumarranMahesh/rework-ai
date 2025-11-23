@@ -2,9 +2,44 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const port = 5000;
+const Sentiment = require('sentiment');
+const sentiment = new Sentiment();
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+require('dotenv').config();
 
 app.use(cors());
 app.use(express.json());
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+const customVocabulary = {
+    'breakdown': -5,
+    'low': -3,
+    'moody': -2,
+    'worse': -3,
+    'anxious': -3,
+    'stress': -3,
+    'scared': -3,
+    'fail': -4,
+    'bad': -3,
+    'stuck': -2,
+    'overwhelmed': -4,
+    'tired': -2,
+    'exhausted': -3,
+    'nervous': -2,
+    'crushed': -4,
+    // Positives
+    'confident': 3,
+    'unstoppable': 4,
+    'ready': 2,
+    'excited': 3
+};
+
+// Register this vocabulary globally to 'en' language
+sentiment.registerLanguage('en', {
+    labels: customVocabulary
+});
 
 // Mock Database of Market Requirements (In a real app, this comes from an LLM/DB)
 const ROLE_REQUIREMENTS = {
@@ -83,6 +118,60 @@ app.post('/api/analyze-skills', (req, res) => {
         },
         skillAnalysis: analysis
     });
+});
+
+app.post('/api/analyze-sentiment', async (req, res) => {
+    const { text } = req.body;
+
+    try {
+        // 1. Construct the Prompt
+        const prompt = `
+        You are Kai, an empathetic AI Career Mentor for women returning to the workforce.
+        The user just said: "${text}"
+
+        Analyze the sentiment and return a JSON object. 
+        RULES:
+        1. 'score': Integer from -5 (Deep breakdown) to 5 (Ecstatic).
+        2. 'mood': One word summary (e.g., Anxious, Motivated, Overwhelmed, Confident).
+        3. 'advice': A short, human-like, 1-sentence response. If negative, be comforting. If positive, be encouraging.
+        4. DO NOT use markdown code blocks. Just return raw JSON.
+
+        Example JSON format:
+        {
+            "score": -3,
+            "mood": "Anxious",
+            "advice": "It's completely normal to feel this way; let's take it one step at a time."
+        }
+        `;
+
+        // 2. Call Gemini API
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const textResponse = response.text();
+
+        // 3. Clean and Parse JSON (Gemini sometimes adds backticks)
+        const cleanedText = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+        const aiData = JSON.parse(cleanedText);
+
+        // 4. Send to Frontend
+        res.json({
+        score: aiData.score,
+        mood: aiData.mood,
+        advice: aiData.advice,
+        // Calculate dynamic bars for the frontend dashboard
+        confidence: aiData.score > 0 ? 50 + (aiData.score * 10) : 50 - (Math.abs(aiData.score) * 5),
+        stress: aiData.score < 0 ? 50 + (Math.abs(aiData.score) * 10) : 20
+        });
+
+    } catch (error) {
+        console.error("Gemini Error:", error);
+        // Fallback if API fails (e.g., internet issues)
+        res.json({ 
+        score: 0, 
+        mood: 'Neutral', 
+        advice: "I'm listening, but I'm having trouble connecting to my brain right now. Tell me more." 
+        });
+    }
 });
 
 app.get('/api/dashboard/:userId', (req, res) => {
