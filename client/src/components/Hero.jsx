@@ -87,7 +87,7 @@ const Hero = () => {
                 </div>
 
                 {/* Card 2: Job Match */}
-                <div className="glass-card p-6 rounded-3xl col-span-1 bg-gradient-to-br from-indigo-600 to-purple-700 text-white transform translate-y-8 hover:-translate-y-1 transition-transform duration-300">
+                <div className="p-6 rounded-3xl col-span-1 bg-gradient-to-br from-indigo-600 to-purple-700 text-white shadow-xl transform translate-y-8 hover:-translate-y-1 transition-transform duration-300">
                     <div className="mb-4 opacity-80"><Search size={20} /></div>
                     <div className="text-3xl font-display font-bold mb-1">94%</div>
                     <div className="text-sm opacity-90">Match Score</div>
