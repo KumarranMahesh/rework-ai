@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  /* Neo-Modern Color Palette */
+  --color-primary: #4F46E5; /* Indigo */
+  --color-primary-hover: #4338ca;
+  --color-secondary: #EC4899; /* Pink/Coral for warmth */
+  --color-dark: #0f172a;
+  --color-light: #f8fafc;
+  --color-surface: #ffffff;
+  
+  /* Custom Fonts (Assuming Inter/Space Grotesk via Google Fonts) */
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+
+  /* Animation Utilities */
+  --animate-float: float 6s ease-in-out infinite;
+}
+
+/* Base Styles */
+:root {
+  font-family: var(--font-body);
+  background-color: #F1F5F9; /* Very light slate background */
+  color: var(--color-dark);
+  scroll-behavior: smooth;
+}
+
+/* Glassmorphism Utilities */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0px); }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
